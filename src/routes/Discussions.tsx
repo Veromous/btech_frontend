@@ -334,46 +334,46 @@ interface CardProps {
 }
 
 const ThreadCard = ({ thread, onLike, onReply, liked }: CardProps) => (
-    <div className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all duration-200 group">
+    <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 hover:shadow-md hover:border-gray-200 transition-all duration-200 group overflow-hidden">
         {/* Top row */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold shrink-0">
+        <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold shrink-0">
                     {thread.authorName.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                    <p className="text-xs font-semibold text-gray-800">{thread.authorName}</p>
-                    <p className="text-xs text-gray-400 flex items-center gap-1">
-                        <Clock size={11} /> {timeAgo(thread)}
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-800 truncate">{thread.authorName}</p>
+                    <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                        <Clock size={10} /> {timeAgo(thread)}
                     </p>
                 </div>
             </div>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${categoryColor(thread.category)}`}>
+            <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border shrink-0 ${categoryColor(thread.category)}`}>
                 {thread.category}
             </span>
         </div>
 
-        <h3 className="text-sm font-bold text-gray-900 mb-1.5 group-hover:text-blue-600 transition-colors leading-snug">
+        <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-1.5 group-hover:text-blue-600 transition-colors leading-snug break-words">
             {thread.title}
         </h3>
-        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-4">{thread.body}</p>
+        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3 sm:mb-4 break-words">{thread.body}</p>
 
         {/* Footer — interactive */}
-        <div className="flex items-center gap-3 text-gray-400">
+        <div className="flex items-center gap-2 sm:gap-3 text-gray-400">
             <button
                 onClick={() => onLike(thread.id)}
-                className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200
+                className={`flex items-center gap-1.5 text-[10px] sm:text-xs px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border transition-all duration-200
                     ${liked
                         ? 'bg-black text-white border-black'
                         : 'border-gray-100 hover:bg-gray-50 hover:border-gray-200'}`}
             >
-                <ThumbsUp size={13} /> {thread.likeCount}
+                <ThumbsUp size={12} /> {thread.likeCount}
             </button>
             <button
                 onClick={() => onReply(thread)}
-                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all duration-200"
+                className="flex items-center gap-1.5 text-[10px] sm:text-xs px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all duration-200"
             >
-                <MessageSquare size={13} /> {thread.replyCount} {thread.replyCount === 1 ? 'reply' : 'replies'}
+                <MessageSquare size={12} /> {thread.replyCount} {thread.replyCount === 1 ? 'reply' : 'replies'}
             </button>
         </div>
     </div>
@@ -432,15 +432,33 @@ const Discussions = () => {
         setTimeout(fetchThreads, 2000);
     };
 
-    // ── Like handler ───────────────────────────────────────────────────────────
+    // ── Like / Unlike toggle ───────────────────────────────────────────────────
     const handleLike = async (id: string) => {
-        if (likedIds.has(String(id))) return; // already liked
-        // optimistic
-        setThreads((prev) => prev.map((t) => String(t.id) === String(id) ? { ...t, likeCount: t.likeCount + 1 } : t));
-        const newLiked = new Set(likedIds).add(String(id));
-        setLikedIds(newLiked);
-        localStorage.setItem('likedThreads', JSON.stringify([...newLiked]));
-        await fetch(`${API}/${id}/like`, { method: 'PUT' }).catch(() => { });
+        const key = String(id);
+        const alreadyLiked = likedIds.has(key);
+
+        if (alreadyLiked) {
+            // ── Unlike ──────────────────────────────────────────────────────────
+            // Optimistic: decrement count, remove from liked set
+            setThreads((prev) =>
+                prev.map((t) => String(t.id) === key ? { ...t, likeCount: Math.max(0, t.likeCount - 1) } : t)
+            );
+            const newLiked = new Set(likedIds);
+            newLiked.delete(key);
+            setLikedIds(newLiked);
+            localStorage.setItem('likedThreads', JSON.stringify([...newLiked]));
+            await fetch(`${API}/${id}/unlike`, { method: 'PUT' }).catch(() => { });
+        } else {
+            // ── Like ────────────────────────────────────────────────────────────
+            // Optimistic: increment count, add to liked set
+            setThreads((prev) =>
+                prev.map((t) => String(t.id) === key ? { ...t, likeCount: t.likeCount + 1 } : t)
+            );
+            const newLiked = new Set(likedIds).add(key);
+            setLikedIds(newLiked);
+            localStorage.setItem('likedThreads', JSON.stringify([...newLiked]));
+            await fetch(`${API}/${id}/like`, { method: 'PUT' }).catch(() => { });
+        }
     };
 
     // ── Reply count bump after posting ─────────────────────────────────────────
@@ -457,76 +475,78 @@ const Discussions = () => {
     });
 
     return (
-        <div className="flex-1 bg-gray-50 min-h-screen px-8 pr-10 pt-10 pb-16">
+        <div className="flex-1 bg-gray-50 min-h-screen px-4 sm:px-6 pt-6 sm:pt-10 pb-10 sm:pb-16">
 
             {/* ── Hero ── */}
-            <div className="mb-8">
-                <h1 className="text-5xl font-extrabold text-black leading-tight mb-3">Discussions</h1>
-                <p className="text-2xl font-bold text-gray-900 leading-snug mb-3">
+            <div className="mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-black leading-tight mb-2 sm:mb-3">Discussions</h1>
+                <p className="text-base sm:text-xl lg:text-2xl font-bold text-gray-900 leading-snug mb-2 sm:mb-3">
                     Questions, ideas & insights —<br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-500">
                         straight from Cameroon's research community.
                     </span>
                 </p>
-                <p className="text-gray-500 text-sm leading-relaxed max-w-xl">
+                <p className="text-gray-500 text-xs sm:text-sm leading-relaxed max-w-xl">
                     Explore ongoing conversations around data, research challenges, and findings across
                     health, agriculture, climate, education, and more. Join the dialogue — ask questions,
                     share discoveries, and connect with fellow researchers.
                 </p>
                 {/* Stats */}
-                <div className="flex gap-6 mt-5">
+                <div className="flex gap-4 sm:gap-6 mt-4 sm:mt-5">
                     <div className="flex flex-col">
-                        <span className="text-lg font-bold text-gray-900">{threads.length}</span>
-                        <span className="text-xs text-gray-400">Threads</span>
+                        <span className="text-sm sm:text-lg font-bold text-gray-900">{threads.length}</span>
+                        <span className="text-[10px] sm:text-xs text-gray-400">Threads</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-lg font-bold text-gray-900">{CATEGORIES.length - 1}</span>
-                        <span className="text-xs text-gray-400">Categories</span>
+                        <span className="text-sm sm:text-lg font-bold text-gray-900">{CATEGORIES.length - 1}</span>
+                        <span className="text-[10px] sm:text-xs text-gray-400">Categories</span>
                     </div>
                 </div>
             </div>
 
-            <div className="border-t border-gray-100 mb-8" />
+            <div className="border-t border-gray-100 mb-6 sm:mb-8" />
 
             {/* ── Toolbar ── */}
-            <div className="flex items-center gap-3 mb-5">
-                {/* Search */}
-                <div className="flex-1 flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-3 shadow-sm focus-within:border-gray-400 transition">
-                    <Search size={16} className="text-gray-400 shrink-0" />
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+                {/* Search — always full row width so it never squeezes */}
+                <div className="flex-1 min-w-0 flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 shadow-sm focus-within:border-gray-400 transition">
+                    <Search size={14} className="text-gray-400 shrink-0" />
                     <input
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search discussions…"
-                        className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent"
+                        className="flex-1 min-w-0 outline-none text-xs sm:text-sm text-gray-700 placeholder-gray-400 bg-transparent"
                     />
                     {search && (
-                        <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600 transition">
-                            <X size={14} />
+                        <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600 transition shrink-0">
+                            <X size={13} />
                         </button>
                     )}
                 </div>
 
-                {/* New Thread */}
+                {/* New Thread / Sign in */}
                 {isAuthenticated ? (
                     <button
                         onClick={() => setModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-3 bg-black text-white text-sm font-semibold rounded-2xl hover:bg-gray-800 active:scale-[0.98] transition shrink-0 shadow-sm"
+                        className="flex items-center gap-1.5 px-3 sm:px-5 py-2.5 sm:py-3 bg-black text-white text-xs sm:text-sm font-semibold rounded-2xl hover:bg-gray-800 active:scale-[0.98] transition shrink-0 shadow-sm"
                     >
-                        <Plus size={16} /> New Thread
+                        <Plus size={14} /> <span className="hidden sm:inline">New </span>Thread
                     </button>
                 ) : (
-                    <span className="text-xs text-gray-400 shrink-0">Sign in to post</span>
+                    <p className="text-[10px] text-gray-400 w-full text-right pr-1">
+                        <span className="font-medium">Sign in</span> to start a discussion
+                    </p>
                 )}
             </div>
 
             {/* ── Category chips ── */}
-            <div className="flex flex-wrap gap-2 mb-7">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-5 sm:mb-7">
                 {CATEGORIES.map((cat) => (
                     <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200
+                        className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold border transition-all duration-200
                             ${activeCategory === cat
                                 ? 'bg-black text-white border-black shadow-sm scale-[1.03]'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}

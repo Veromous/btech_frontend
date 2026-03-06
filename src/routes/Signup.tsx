@@ -17,6 +17,8 @@ const GitHubIcon = () => (
     </svg>
 );
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+
 const Signup = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -26,6 +28,15 @@ const Signup = () => {
     const [loading, setLoading] = useState(false);
     const { signupWithEmail, loginWithGoogle, loginWithGithub } = useAuth();
     const navigate = useNavigate();
+
+    // Fire-and-forget welcome email — never blocks the signup flow
+    const sendWelcomeEmail = (userEmail: string, userName: string) => {
+        fetch(`${BASE_URL}/auth/welcome-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail, name: userName }),
+        }).catch(() => { /* silent — email failure never blocks signup */ });
+    };
 
     const handleError = (err: unknown) => {
         console.error('Auth error:', err);
@@ -44,20 +55,32 @@ const Signup = () => {
         if (password !== confirm) { setError('Passwords do not match.'); return; }
         if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
         setLoading(true);
-        try { await signupWithEmail(name, email, password); navigate('/'); }
+        try {
+            const user = await signupWithEmail(name, email, password);
+            sendWelcomeEmail(user.email, user.name);
+            navigate('/');
+        }
         catch (err) { handleError(err); }
         finally { setLoading(false); }
     };
 
     const handleGoogle = async () => {
         setError('');
-        try { await loginWithGoogle(); navigate('/'); }
+        try {
+            const user = await loginWithGoogle();
+            sendWelcomeEmail(user.email, user.name);
+            navigate('/');
+        }
         catch (err) { handleError(err); }
     };
 
     const handleGithub = async () => {
         setError('');
-        try { await loginWithGithub(); navigate('/'); }
+        try {
+            const user = await loginWithGithub();
+            sendWelcomeEmail(user.email, user.name);
+            navigate('/');
+        }
         catch (err) { handleError(err); }
     };
 

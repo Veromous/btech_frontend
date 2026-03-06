@@ -37,7 +37,7 @@ const SplashScreen = () => {
     }, []);
 
     return (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white">
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white px-4">
 
             {/* ── Animated DB Icon ─────────────────────────────────── */}
             <div className="relative flex items-center justify-center mb-8">
@@ -91,13 +91,13 @@ const SplashScreen = () => {
             <p className="text-xs text-gray-400 mb-8">Fetching Cameroon's data…</p>
 
             {/* ── Animated file list ────────────────────────────────── */}
-            <div className="w-72 space-y-2 mb-8">
+            <div className="w-full max-w-xs space-y-2 mb-8">
                 {FILES.map((file, i) => (
                     <div
                         key={file.name}
                         className={`flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 transition-all duration-500 ${visibleFiles.includes(i)
-                                ? 'opacity-100 translate-y-0'
-                                : 'opacity-0 translate-y-3'
+                            ? 'opacity-100 translate-y-0'
+                            : 'opacity-0 translate-y-3'
                             }`}
                         style={{ transitionDelay: `${i * 60}ms` }}
                     >
@@ -124,7 +124,7 @@ const SplashScreen = () => {
             </div>
 
             {/* ── Progress bar ──────────────────────────────────────── */}
-            <div className="w-72">
+            <div className="w-full max-w-xs">
                 <div className="flex justify-between text-xs text-gray-400 mb-1.5">
                     <span>Loading datasets</span>
                     <span>{Math.min(Math.round(progress), 100)}%</span>

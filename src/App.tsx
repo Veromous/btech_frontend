@@ -9,7 +9,9 @@ import Signup from './routes/Signup'
 import Datasets from './routes/Datasets'
 import Discussions from './routes/Discussions'
 import Support from './routes/Support'
+import Reports from './routes/Reports'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ReportProvider } from './context/ReportContext'
 import SplashScreen from './components/SplashScreen'
 
 const AUTH_ROUTES = ['/login', '/signup'];
@@ -30,26 +32,26 @@ const TopBar = () => {
   }, []);
 
   return (
-    <div className="flex justify-end items-center gap-3 px-8 py-4 bg-gray-50 border-b border-gray-100">
+    <div className="flex justify-end items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-4 bg-gray-50 border-b border-gray-100">
       {isAuthenticated && user ? (
-        <div ref={dropRef} className="relative">
+        <div ref={dropRef} className="relative min-w-0">
           {/* Avatar button */}
           <button
             onClick={() => setDropOpen(!dropOpen)}
-            className="flex items-center gap-2.5 hover:opacity-80 transition"
+            className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 hover:opacity-80 transition"
           >
-            <span className="text-sm text-gray-500 font-medium">{user.name}</span>
-            <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold select-none shadow-sm">
+            <span className="text-xs sm:text-sm text-gray-500 font-medium truncate max-w-[80px] sm:max-w-[140px]">{user.name}</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-black text-white flex items-center justify-center text-xs sm:text-sm font-bold select-none shadow-sm shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
           </button>
 
           {/* Dropdown */}
           {dropOpen && (
-            <div className="absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-60 p-4">
+            <div className="absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-52 sm:w-60 p-4">
               {/* Account info */}
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold shrink-0">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -70,8 +72,8 @@ const TopBar = () => {
         </div>
       ) : (
         <>
-          <Link to="/login" className="text-black text-sm font-semibold hover:opacity-70 transition">Sign in</Link>
-          <Link to="/signup" className="px-4 py-2 bg-black text-white text-sm rounded-lg font-semibold hover:bg-gray-800 transition">Sign up</Link>
+          <Link to="/login" className="text-black text-xs sm:text-sm font-semibold hover:opacity-70 transition">Sign in</Link>
+          <Link to="/signup" className="px-3 sm:px-4 py-1.5 sm:py-2 bg-black text-white text-xs sm:text-sm rounded-lg font-semibold hover:bg-gray-800 transition">Sign up</Link>
         </>
       )}
     </div>
@@ -91,7 +93,7 @@ const AppRoutes = () => {
   return (
     <div className='flex'>
       {!isAuthPage && <Navbar />}
-      <div className={`${isAuthPage ? 'w-full' : 'flex-1 flex flex-col min-h-screen'}`}>
+      <div className={`min-w-0 ${isAuthPage ? 'w-full' : 'flex-1 flex flex-col min-h-screen overflow-x-hidden'}`}>
         {!isAuthPage && <TopBar />}
         <Routes>
           <Route path='/' element={<Home />} />
@@ -100,6 +102,7 @@ const AppRoutes = () => {
           <Route path='/datasets' element={<Datasets />} />
           <Route path='/discussions' element={<Discussions />} />
           <Route path='/support' element={<Support />} />
+          <Route path='/reports' element={<Reports />} />
         </Routes>
       </div>
     </div>
@@ -110,7 +113,9 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ReportProvider>
+        <AppRoutes />
+      </ReportProvider>
     </AuthProvider>
   );
 }

@@ -25,9 +25,9 @@ interface AuthContextType {
     isAuthenticated: boolean;
     loading: boolean;
     loginWithEmail: (email: string, password: string) => Promise<void>;
-    signupWithEmail: (name: string, email: string, password: string) => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
-    loginWithGithub: () => Promise<void>;
+    signupWithEmail: (name: string, email: string, password: string) => Promise<User>;
+    loginWithGoogle: () => Promise<User>;
+    loginWithGithub: () => Promise<User>;
     logout: () => Promise<void>;
 }
 
@@ -75,20 +75,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await notifyBackend(u);
     };
 
-    const signupWithEmail = async (name: string, email: string, password: string) => {
+    const signupWithEmail = async (name: string, email: string, password: string): Promise<User> => {
         const { user: u } = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(u, { displayName: name });
         await notifyBackend(u);
+        return mapFirebaseUser(u);
     };
 
-    const loginWithGoogle = async () => {
+    const loginWithGoogle = async (): Promise<User> => {
         const { user: u } = await signInWithPopup(auth, googleProvider);
         await notifyBackend(u);
+        return mapFirebaseUser(u);
     };
 
-    const loginWithGithub = async () => {
+    const loginWithGithub = async (): Promise<User> => {
         const { user: u } = await signInWithPopup(auth, githubProvider);
         await notifyBackend(u);
+        return mapFirebaseUser(u);
     };
 
     const logout = async () => {

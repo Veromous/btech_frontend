@@ -193,38 +193,38 @@ const Support = () => {
         : [];
 
     return (
-        <div className="flex-1 bg-gray-50 min-h-screen px-8 pr-10 pt-10 pb-16">
+        <div className="flex-1 bg-gray-50 min-h-screen px-4 sm:px-6 pt-6 sm:pt-10 pb-10 sm:pb-16">
 
             {/* ── Hero ── */}
-            <div className="mb-10">
-                <div className="flex items-center gap-2 mb-4">
+            <div className="mb-6 sm:mb-10">
+                <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 rounded-full bg-gray-900 animate-pulse" />
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Help Center</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest">Help Center</span>
                 </div>
-                <h1 className="text-5xl font-extrabold text-black leading-tight mb-3">Support</h1>
-                <p className="text-2xl font-bold text-gray-900 leading-snug mb-3">
+                <h1 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-black leading-tight mb-2 sm:mb-3">Support</h1>
+                <p className="text-base sm:text-xl lg:text-2xl font-bold text-gray-900 leading-snug mb-2 sm:mb-3">
                     We've got answers —<br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-500">
                         whatever your question.
                     </span>
                 </p>
-                <p className="text-gray-500 text-sm leading-relaxed max-w-xl">
+                <p className="text-gray-500 text-xs sm:text-sm leading-relaxed max-w-xl">
                     Step-by-step guidance on using DataCenter — discussions, datasets, account privacy,
                     notifications, and security. Can't find what you need? Reach out directly.
                 </p>
                 {/* Live indicator */}
-                <div className="flex items-center gap-2 mt-4">
+                <div className="flex items-center gap-2 mt-3 sm:mt-4">
                     <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75" />
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-700" />
                     </span>
-                    <span className="text-xs text-gray-400 font-medium">Support team online · Mon–Fri, 08:00–18:00 WAT</span>
+                    <span className="text-[10px] sm:text-xs text-gray-400 font-medium">Support team online · Mon–Fri, 08:00–18:00 WAT</span>
                 </div>
             </div>
 
             {/* ── Search ── */}
-            <div className="relative mb-10 max-w-2xl">
-                <div className="flex items-center gap-3 bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 shadow-sm focus-within:border-gray-900 focus-within:shadow-lg transition-all duration-300">
+            <div className="relative mb-6 sm:mb-10 max-w-2xl">
+                <div className="flex items-center gap-2 sm:gap-3 bg-white border-2 border-gray-200 rounded-2xl px-3 sm:px-5 py-3 sm:py-4 shadow-sm focus-within:border-gray-900 focus-within:shadow-lg transition-all duration-300">
                     <Search size={16} className="text-gray-400 shrink-0" />
                     <input
                         type="text"
