@@ -1,5 +1,5 @@
 import {
-  Logs, Plus, Minus, Home, Database, MessageCircle, Contact, Flag, User, LogOut,
+  Logs, Plus, Minus, Menu, Home, Database, MessageCircle, Contact, Flag, User, LogOut,
   Upload, X, FileText, FileJson, FileSpreadsheet, BarChart2, AlertCircle, CheckCircle2, ShieldX,
 } from 'lucide-react'
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -399,12 +399,26 @@ const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [open, setOpen] = useState(() => window.innerWidth >= LARGE_SCREEN);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < LARGE_SCREEN);
+  const [open, setOpen] = useState(() => window.innerWidth >= LARGE_SCREEN); // desktop collapse state
+  const [mobileOpen, setMobileOpen] = useState(false); // mobile drawer state
   useEffect(() => {
-    const onResize = () => setOpen(window.innerWidth >= LARGE_SCREEN);
+    const onResize = () => {
+      const mobile = window.innerWidth < LARGE_SCREEN;
+      setIsMobile(mobile);
+      if (mobile) {
+        setMobileOpen(false);
+      } else {
+        setOpen(true);
+        setMobileOpen(false);
+      }
+    };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // On mobile the drawer always shows full labels; on desktop it follows the collapse state.
+  const expanded = isMobile ? true : open;
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -443,11 +457,40 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className={`sticky top-0 z-50 shadow-md h-screen p-1.5 lg:p-2 flex flex-col border border-r border-gray-200 ${open ? 'w-44 lg:w-56' : 'w-12 lg:w-16'} duration-500 bg-white text-black`}>
+      {/* Mobile hamburger button */}
+      {isMobile && !mobileOpen && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open menu"
+          className="fixed top-2.5 left-3 z-50 p-2 rounded-lg bg-white border border-gray-200 shadow-md text-gray-700 hover:bg-gray-50 active:scale-95 transition"
+        >
+          <Menu size={20} />
+        </button>
+      )}
+
+      {/* Mobile backdrop */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm animate-fade-in"
+        />
+      )}
+
+      <nav
+        className={
+          isMobile
+            ? `fixed top-0 left-0 z-[60] h-screen w-64 p-2 flex flex-col border-r border-gray-200 bg-white text-black shadow-xl transform transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`
+            : `sticky top-0 z-50 shadow-md h-screen p-1.5 lg:p-2 flex flex-col border border-r border-gray-200 ${open ? 'w-44 lg:w-56' : 'w-12 lg:w-16'} duration-500 bg-white text-black`
+        }
+      >
 
         <div className='border-b px-2 py-2 lg:px-3 lg:py-3 h-14 lg:h-20 flex justify-between items-center'>
-          <span className={`font-bold text-base lg:text-xl ${!open && 'w-0 opacity-0 overflow-hidden'} duration-500 truncate`}>DataCenter</span>
-          <div><Logs size={20} className={`cursor-pointer duration-500 ${!open && 'rotate-180'}`} onClick={() => setOpen(!open)} /></div>
+          <span className={`font-bold text-base lg:text-xl ${!expanded && 'w-0 opacity-0 overflow-hidden'} duration-500 truncate`}>DataCenter</span>
+          <div>
+            {isMobile
+              ? <X size={20} className="cursor-pointer text-gray-600 hover:text-black" onClick={() => setMobileOpen(false)} />
+              : <Logs size={20} className={`cursor-pointer duration-500 ${!open && 'rotate-180'}`} onClick={() => setOpen(!open)} />}
+          </div>
         </div>
 
         {/* Upload button + modal */}
@@ -457,12 +500,12 @@ const Navbar = () => {
             className='shadow-md rounded-full w-fit p-1.5 lg:p-2 flex items-center bg-blue-600 text-white hover:bg-blue-700 duration-300'
           >
             {uploadOpen ? <Minus size={20} className='cursor-pointer' /> : <Plus size={20} className='cursor-pointer' />}
-            <p className={`${!open && 'hidden duration-500'} duration-500 font-semibold text-sm lg:text-base pr-3 lg:pr-4`}>Upload</p>
+            <p className={`${!expanded && 'hidden duration-500'} duration-500 font-semibold text-sm lg:text-base pr-3 lg:pr-4`}>Upload</p>
           </button>
 
           {uploadOpen && (
             <UploadModal
-              anchorOpen={open}
+              anchorOpen={expanded}
               onClose={() => setUploadOpen(false)}
               onSuccess={handleUploadSuccess}
             />
@@ -474,6 +517,7 @@ const Navbar = () => {
             <li key={item.label} className="mt-2 lg:mt-4">
               <NavLink
                 to={item.path}
+                onClick={() => isMobile && setMobileOpen(false)}
                 className={({ isActive }) =>
                   `px-2 py-1.5 lg:px-3 lg:py-2 rounded-md duration-300 cursor-pointer flex items-center gap-2 lg:gap-3 relative group
                   ${isActive ? 'text-black' : 'text-gray-600 hover:text-black'}`
@@ -485,10 +529,10 @@ const Navbar = () => {
                       <span className="absolute -right-1.5 lg:-right-2 top-0 h-full w-0.5 lg:w-1 bg-black rounded-l" />
                     )}
                     <div className="transition-colors duration-300 shrink-0">{item.icons}</div>
-                    <p className={`${!open && 'w-0 translate-x-24'} duration-500 overflow-hidden font-semibold text-sm transition-colors`}>
+                    <p className={`${!expanded && 'w-0 translate-x-24'} duration-500 overflow-hidden font-semibold text-sm transition-colors`}>
                       {item.label}
                     </p>
-                    <p className={`${open && 'hidden'} absolute left-12 lg:left-16 shadow-md rounded-md duration-300 overflow-hidden
+                    <p className={`${expanded && 'hidden'} absolute left-12 lg:left-16 shadow-md rounded-md duration-300 overflow-hidden
                       group-hover:left-12 lg:group-hover:left-16 w-0 p-0 group-hover:p-1.5 lg:group-hover:p-2 group-hover:w-fit bg-white font-semibold text-xs`}>
                       {item.label}
                     </p>
@@ -501,7 +545,7 @@ const Navbar = () => {
 
         {/* User footer */}
         <div ref={profileRef} className='relative flex flex-col px-2 py-1.5 lg:px-3 lg:py-2 gap-1'>
-          {!open && profileOpen && isAuthenticated && user && (
+          {!expanded && profileOpen && isAuthenticated && user && (
             <div className="absolute bottom-10 left-12 lg:left-16 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-52 p-4 animate-fade-in">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold shrink-0">
@@ -524,12 +568,12 @@ const Navbar = () => {
 
           <div className='flex gap-1.5 lg:gap-2 items-center'>
             <button
-              onClick={() => !open && setProfileOpen(!profileOpen)}
-              className={`shrink-0 ${!open ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition`}
+              onClick={() => !expanded && setProfileOpen(!profileOpen)}
+              className={`shrink-0 ${!expanded ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition`}
             >
               <User size={20} />
             </button>
-            <div className={`leading-4 lg:leading-5 min-w-0 ${!open && 'w-0 translate-x-24'} duration-500 overflow-hidden`}>
+            <div className={`leading-4 lg:leading-5 min-w-0 ${!expanded && 'w-0 translate-x-24'} duration-500 overflow-hidden`}>
               {isAuthenticated && user ? (
                 <>
                   <p className='text-xs lg:text-sm font-medium truncate'>{user.name}</p>
@@ -544,7 +588,7 @@ const Navbar = () => {
           {isAuthenticated && (
             <button
               onClick={logout}
-              className={`flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 transition duration-200 px-1 mt-0.5 lg:mt-1 ${!open && 'hidden'}`}
+              className={`flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 transition duration-200 px-1 mt-0.5 lg:mt-1 ${!expanded && 'hidden'}`}
             >
               <LogOut size={14} />
               <span>Log out</span>

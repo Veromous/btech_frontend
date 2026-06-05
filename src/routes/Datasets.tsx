@@ -6,6 +6,8 @@ import {
     FileSpreadsheet, FileJson, FileText, Database,
     Download, Loader2, MapPin, Calendar, Rows3, Info, ArrowLeft,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { trackEvent } from '../lib/activity';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 
@@ -507,12 +509,19 @@ const SkeletonCard = () => (
 
 // ─── Datasets Page ────────────────────────────────────────────────────────────
 const Datasets = () => {
+    const { user } = useAuth();
     const [query, setQuery] = useState('');
     const [filters, setFilters] = useState<FilterState>({ category: null, fileType: null, fileSize: null });
     const [entries, setEntries] = useState<CatalogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState('');
     const [selectedEntry, setSelectedEntry] = useState<CatalogEntry | null>(null);
+
+    // Record a dataset view, then open the detail modal.
+    const openEntry = useCallback((entry: CatalogEntry) => {
+        trackEvent({ uid: user?.uid, kind: 'view', term: entry.name, category: entry.category, datasetId: entry.id });
+        setSelectedEntry(entry);
+    }, [user?.uid]);
 
     // debounced fetch
     const fetchCatalog = useCallback(async (search: string, category: string) => {
@@ -533,9 +542,15 @@ const Datasets = () => {
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(() => fetchCatalog(query, filters.category ?? ''), 300);
+        const timer = setTimeout(() => {
+            fetchCatalog(query, filters.category ?? '');
+            // Log meaningful searches (and category picks) to power recommendations.
+            if (query.trim().length >= 3 || filters.category) {
+                trackEvent({ uid: user?.uid, kind: 'search', term: query.trim(), category: filters.category ?? '' });
+            }
+        }, 400);
         return () => clearTimeout(timer);
-    }, [query, filters.category, fetchCatalog]);
+    }, [query, filters.category, fetchCatalog, user?.uid]);
 
     return (
         <div className="flex-1 bg-gray-50 min-h-screen px-4 sm:px-6 pt-6 sm:pt-10 pb-10 sm:pb-16">
@@ -605,7 +620,7 @@ const Datasets = () => {
                         <>
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 {displayed.map((entry) => (
-                                    <DatasetCard key={entry.id} entry={entry} onOpen={setSelectedEntry} />
+                                    <DatasetCard key={entry.id} entry={entry} onOpen={openEntry} />
                                 ))}
                             </div>
                             {!isFiltered && (
