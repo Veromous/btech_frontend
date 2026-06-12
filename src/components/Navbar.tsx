@@ -8,6 +8,14 @@ import { useAuth } from '../context/AuthContext';
 import { useReport } from '../context/ReportContext';
 import type { AnalysisResult } from '../context/ReportContext';
 
+// A single column flagged as carrying personal data by the backend privacy gate.
+interface PiiFinding {
+  column: string;
+  type: string;
+  via: 'header' | 'values' | 'header+values';
+  sample?: string;
+}
+
 const LARGE_SCREEN = 1024;
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 const ACCEPTED_TYPES = '.csv,.json,.xlsx,.xls';
@@ -41,6 +49,7 @@ const UploadModal = ({ anchorOpen, onClose, onSuccess }: UploadModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [piiFindings, setPiiFindings] = useState<PiiFinding[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Step 2
@@ -63,7 +72,7 @@ const UploadModal = ({ anchorOpen, onClose, onSuccess }: UploadModalProps) => {
     return <FileSpreadsheet size={18} className="text-emerald-500" />;
   };
 
-  const handleFile = (f: File) => { setFile(f); setError(null); };
+  const handleFile = (f: File) => { setFile(f); setError(null); setPiiFindings(null); };
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -83,12 +92,20 @@ const UploadModal = ({ anchorOpen, onClose, onSuccess }: UploadModalProps) => {
     if (!file) return;
     setUploading(true);
     setError(null);
+    setPiiFindings(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch(`${BASE_URL}/datasets/upload`, { method: 'POST', body: formData });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Upload failed'); return; }
+      if (!res.ok) {
+        // Privacy gate rejection — surface the offending columns distinctly.
+        if (data.piiDetected && Array.isArray(data.piiFindings)) {
+          setPiiFindings(data.piiFindings);
+        }
+        setError(data.error ?? 'Upload failed');
+        return;
+      }
 
       const report: AnalysisResult = { ...data, fileName: file.name, uploadedAt: new Date().toISOString() };
       setReport(report);
@@ -168,8 +185,12 @@ const UploadModal = ({ anchorOpen, onClose, onSuccess }: UploadModalProps) => {
 
   return (
     <div
-      className={`absolute mt-1 top-0 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden
-        ${step === 2 && addToCatalog ? 'w-80' : 'w-72'} ${anchorOpen ? 'left-44 lg:left-56' : 'left-12 lg:left-16'}`}
+      className={`z-50 bg-white border border-gray-200 rounded-2xl shadow-xl
+        overflow-y-auto sm:overflow-hidden
+        fixed top-16 left-1/2 -translate-x-1/2 w-[calc(100vw-1.5rem)] max-w-xs max-h-[85vh]
+        sm:absolute sm:mt-1 sm:top-0 sm:left-auto sm:translate-x-0 sm:max-h-none
+        ${step === 2 && addToCatalog ? 'sm:w-80' : 'sm:w-72'}
+        ${anchorOpen ? 'sm:left-44 lg:left-56' : 'sm:left-12 lg:left-16'}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -368,8 +389,34 @@ const UploadModal = ({ anchorOpen, onClose, onSuccess }: UploadModalProps) => {
         </div>
       )}
 
+      {/* Privacy rejection — file carries personal data */}
+      {piiFindings && piiFindings.length > 0 && (
+        <div className="mx-4 mb-3 bg-red-50 border border-red-200 rounded-xl px-3 py-3">
+          <div className="flex items-start gap-2 text-red-700">
+            <ShieldX size={14} className="shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold">Upload blocked — personal data detected</p>
+              <p className="text-[10px] text-red-600 mt-0.5 leading-relaxed">
+                This file can't be published because it contains information that could identify
+                individuals. Remove or anonymise these columns, then try again:
+              </p>
+            </div>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {piiFindings.map((f, i) => (
+              <li key={`${f.column}-${i}`} className="flex items-center gap-2 text-[10px] text-red-700 bg-white/60 border border-red-100 rounded-lg px-2 py-1">
+                <span className="font-semibold truncate max-w-[8rem]">{f.column}</span>
+                <span className="text-red-400">→</span>
+                <span className="text-red-600">{f.type}</span>
+                {f.sample && <span className="ml-auto text-red-300 font-mono">{f.sample}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Error */}
-      {error && (
+      {error && !piiFindings && (
         <div className="mx-4 mb-3 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-[11px] rounded-xl px-3 py-2.5">
           <AlertCircle size={13} className="shrink-0 mt-0.5" />
           {error}
@@ -512,9 +559,9 @@ const Navbar = () => {
           )}
         </div>
 
-        <ul className="flex-1">
+        <ul className="flex-1 mt-4 lg:mt-6 space-y-3 lg:space-y-5">
           {menuItems.map((item) => (
-            <li key={item.label} className="mt-2 lg:mt-4">
+            <li key={item.label}>
               <NavLink
                 to={item.path}
                 onClick={() => isMobile && setMobileOpen(false)}
@@ -544,7 +591,7 @@ const Navbar = () => {
         </ul>
 
         {/* User footer */}
-        <div ref={profileRef} className='relative flex flex-col px-2 py-1.5 lg:px-3 lg:py-2 gap-1'>
+        <div ref={profileRef} className='relative flex flex-col px-2 py-1.5 lg:px-3 lg:py-2 gap-1 mb-4 lg:mb-6 border-t border-gray-100 pt-3'>
           {!expanded && profileOpen && isAuthenticated && user && (
             <div className="absolute bottom-10 left-12 lg:left-16 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-52 p-4 animate-fade-in">
               <div className="flex items-center gap-3 mb-3">
