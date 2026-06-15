@@ -1,6 +1,14 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+export interface QualityDimension {
+    key: 'accurate' | 'complete' | 'relevant' | 'consistent' | 'representative' | 'balanced';
+    label: string;
+    score: number;
+    status: 'good' | 'fair' | 'poor' | 'na';
+    detail: string;
+}
+
 export interface AnalysisResult {
     qualityScore: number;
     qualityLevel: string;
@@ -8,6 +16,7 @@ export interface AnalysisResult {
     rowCount: number;
     columnCount: number;
     cleanedPreview: (string | number | null)[][];
+    dimensions?: QualityDimension[];
 }
 
 export interface UploadRecord {

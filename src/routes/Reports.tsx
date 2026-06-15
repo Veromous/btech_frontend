@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react';
 import { useReport } from '../context/ReportContext';
+import type { QualityDimension } from '../context/ReportContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Flag, CheckCircle, AlertTriangle, AlertCircle,
     Shield, ShieldAlert, ShieldOff, BarChart2, Upload, Trash2,
+    Target, ClipboardCheck, Layers, Repeat, Users, Scale, MinusCircle,
 } from 'lucide-react';
 
 
@@ -102,6 +105,75 @@ const NullRateChart = ({ preview }: { preview: (string | number | null)[][] }) =
     );
 };
 
+// ─── Quality Dimensions ─────────────────────────────────────────────────────
+// The six qualities of a good dataset, shown as scored bars with an explanation.
+const DIM_ICON: Record<QualityDimension['key'], ReactNode> = {
+    accurate: <Target size={15} />,
+    complete: <ClipboardCheck size={15} />,
+    relevant: <Layers size={15} />,
+    consistent: <Repeat size={15} />,
+    representative: <Users size={15} />,
+    balanced: <Scale size={15} />,
+};
+
+const QualityDimensions = ({ dimensions }: { dimensions: QualityDimension[] }) => {
+    const palette = (status: QualityDimension['status']) =>
+        status === 'good'
+            ? { bar: '#10b981', text: 'text-emerald-700', chip: 'bg-emerald-50 border-emerald-200' }
+            : status === 'fair'
+                ? { bar: '#f59e0b', text: 'text-amber-700', chip: 'bg-amber-50 border-amber-200' }
+                : status === 'poor'
+                    ? { bar: '#ef4444', text: 'text-red-700', chip: 'bg-red-50 border-red-200' }
+                    : { bar: '#9ca3af', text: 'text-gray-500', chip: 'bg-gray-50 border-gray-200' };
+
+    return (
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-7">
+            <div className="flex items-center gap-2 mb-1">
+                <CheckCircle size={15} className="text-gray-400" />
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                    Qualities of a Good Dataset
+                </p>
+            </div>
+            <p className="text-[11px] text-gray-400 mb-5">
+                Accurate · Complete · Relevant · Consistent · Representative · Balanced
+            </p>
+
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-5">
+                {dimensions.map((d) => {
+                    const c = palette(d.status);
+                    const isNa = d.status === 'na';
+                    return (
+                        <div key={d.key}>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <div className={`flex items-center gap-2 font-semibold text-sm ${c.text}`}>
+                                    {DIM_ICON[d.key]}
+                                    {d.label}
+                                </div>
+                                <span className={`text-xs font-bold ${c.text}`}>
+                                    {isNa ? 'N/A' : `${d.score}/100`}
+                                </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                                {isNa ? (
+                                    <div className="h-full w-full flex items-center justify-center">
+                                        <MinusCircle size={10} className="text-gray-300" />
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="h-full rounded-full"
+                                        style={{ width: `${d.score}%`, background: c.bar, transition: 'width 0.8s ease' }}
+                                    />
+                                )}
+                            </div>
+                            <p className="text-[11px] text-gray-400 mt-1.5 leading-snug">{d.detail}</p>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 // ─── Empty State ──────────────────────────────────────────────────────────────
 const EmptyState = () => {
     const navigate = useNavigate();
@@ -193,6 +265,11 @@ const Reports = () => {
                             <ScoreRing score={report.qualityScore} />
                         </div>
                     </div>
+
+                    {/* ── Quality dimensions ── */}
+                    {report.dimensions && report.dimensions.length > 0 && (
+                        <QualityDimensions dimensions={report.dimensions} />
+                    )}
 
                     {/* ── Null-rate chart ── */}
                     {report.cleanedPreview.length > 1 && (

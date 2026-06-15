@@ -56,6 +56,18 @@ const mapFirebaseUser = (u: FirebaseUser): User => ({
     photoURL: u.photoURL,
 });
 
+// ─── Helper: fire-and-forget welcome email ────────────────────────────────────
+// Sent on every successful auth (email, Google, GitHub) for any account, so any
+// user who logs in receives a welcome email. Never blocks the auth flow.
+const sendWelcomeEmail = (email: string, name: string) => {
+    if (!email) return;
+    fetch(`${BASE_URL}/auth/welcome-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name }),
+    }).catch(() => { /* email failure must never block auth */ });
+};
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -73,25 +85,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const loginWithEmail = async (email: string, password: string) => {
         const { user: u } = await signInWithEmailAndPassword(auth, email, password);
         await notifyBackend(u);
+        const mapped = mapFirebaseUser(u);
+        sendWelcomeEmail(mapped.email, mapped.name);
     };
 
     const signupWithEmail = async (name: string, email: string, password: string): Promise<User> => {
         const { user: u } = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(u, { displayName: name });
         await notifyBackend(u);
-        return mapFirebaseUser(u);
+        const mapped = mapFirebaseUser(u);
+        sendWelcomeEmail(mapped.email, mapped.name);
+        return mapped;
     };
 
     const loginWithGoogle = async (): Promise<User> => {
         const { user: u } = await signInWithPopup(auth, googleProvider);
         await notifyBackend(u);
-        return mapFirebaseUser(u);
+        const mapped = mapFirebaseUser(u);
+        sendWelcomeEmail(mapped.email, mapped.name);
+        return mapped;
     };
 
     const loginWithGithub = async (): Promise<User> => {
         const { user: u } = await signInWithPopup(auth, githubProvider);
         await notifyBackend(u);
-        return mapFirebaseUser(u);
+        const mapped = mapFirebaseUser(u);
+        sendWelcomeEmail(mapped.email, mapped.name);
+        return mapped;
     };
 
     const logout = async () => {

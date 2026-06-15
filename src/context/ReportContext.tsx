@@ -3,6 +3,14 @@ import type { ReactNode } from 'react';
 
 const REPORT_KEY = 'datasetReport';
 
+export interface QualityDimension {
+    key: 'accurate' | 'complete' | 'relevant' | 'consistent' | 'representative' | 'balanced';
+    label: string;
+    score: number;
+    status: 'good' | 'fair' | 'poor' | 'na';
+    detail: string;
+}
+
 export interface AnalysisResult {
     qualityScore: number;
     qualityLevel: string;
@@ -10,6 +18,7 @@ export interface AnalysisResult {
     rowCount: number;
     columnCount: number;
     cleanedPreview: (string | number | null)[][];
+    dimensions?: QualityDimension[];
     fileName?: string;
     uploadedAt?: string;
 }
